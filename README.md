@@ -8,7 +8,7 @@ A free typing race game that runs in the browser (computer or phone).
 - Speed (WPM), timer, accuracy, score and a top-3 leaderboard
 - Performance Analytics: speed trend, accuracy, speed vs. accuracy, finishing positions, with written interpretation
 
-Created by Lay Hok Houn, Business Analyst.
+Created by Lay Hok Houn, Business Analyst | Data & Insights.
 
 ## Run it
 Open `index.html` in any browser. To put it online, enable GitHub Pages (Settings > Pages > Deploy from branch > main).
