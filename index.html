@@ -132,6 +132,7 @@ input.nm{font:inherit;padding:10px;border-radius:10px;border:2px solid var(--mut
 #inp{position:fixed;left:0;bottom:0;width:1px;height:1px;opacity:0;padding:0;margin:0;border:0;font-size:16px;pointer-events:none}
 .text .bad{background:#e53935;color:#fff}
 .dash.err{animation:errf .25s}
+.text .cur.wrong{background:#e53935!important;color:#fff!important;border-bottom-color:#e53935!important}
 @keyframes errf{0%{box-shadow:0 0 0 5px #e53935}100%{box-shadow:0 0 0 0 transparent}}
 .track{background:linear-gradient(90deg,#34363b 50%,#393c42 50%) var(--roff,0px) 0/160px 100% repeat-x}
 .track::before{background:linear-gradient(90deg,#d62027 50%,#f3f3f3 50%) var(--roff,0px) 100%/72px 9px repeat-x,linear-gradient(#72bb2e,#3f8a14)}
@@ -489,9 +490,9 @@ let level='beginner',S=null,raf=null,lastScore=0,saved=false;
 function store(op,v){try{if(op==='get')return JSON.parse(localStorage.getItem('typingracer-lb')||'[]');localStorage.setItem('typingracer-lb',JSON.stringify(v))}catch(e){return op==='get'?[]:null}}
 function hist(op,v){try{if(op==='get'){const a=JSON.parse(localStorage.getItem('typingracer-hist')||'[]');return Array.isArray(a)?a.filter(r=>r&&isFinite(r.w)&&isFinite(r.a)&&r.w>0&&r.w<1000&&r.a>=0&&r.a<=100).map(r=>({l:String(r.l).slice(0,20),w:+r.w,a:+r.a,s:+r.s||0,p:+r.p||0})):[]}localStorage.setItem('typingracer-hist',JSON.stringify(v.slice(-50)))}catch(e){return op==='get'?[]:null}}
 function rec(r){const d=hist('get');d.push(r);hist('set',d)}
-function board(el){if(el.id==='lb')setTimeout(viz,0);const d=store('get').slice(0,10);
+function board(el){if(el.id==='lb')setTimeout(viz,0);const d=store('get').slice(0,3);
  let rows=d.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.n)}</td><td>${esc(r.l)}</td><td>${r.w}</td><td>${r.s}</td></tr>`).join('');
- for(let i=d.length;i<10;i++)rows+=`<tr class="e"><td>${i+1}</td><td>${i===0?'Be the first!':'\u2014'}</td><td>\u2014</td><td>\u2014</td><td>\u2014</td></tr>`;
+ for(let i=d.length;i<3;i++)rows+=`<tr class="e"><td>${i+1}</td><td>${i===0?'Be the first!':'\u2014'}</td><td>\u2014</td><td>\u2014</td><td>\u2014</td></tr>`;
  el.innerHTML='<table class="lbt"><tr><th>#</th><th>Name</th><th>Level</th><th>WPM</th><th>Score</th></tr>'+rows+'</table>'}
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 
@@ -555,14 +556,23 @@ function tick(){
 }
 $('inp').addEventListener('input',e=>{
  if(!S||!S.run)return;
- const v=e.target.value;
+ let v=e.target.value,flash=false;
  if(e.inputType&&e.inputType.startsWith('insert')){
-  S.keys++;const i=v.length-1;if(v[i]!==S.text[i]){S.errs++;S.streak=0;const d=document.querySelector('.dash');d.classList.remove('err');void d.offsetWidth;d.classList.add('err')}else S.streak=(S.streak||0)+1;$('c0').classList.toggle('nitro',S.streak>=12);S.hits.push(performance.now());
+  S.keys++;
+  const ok=correct(v);
+  if(ok<v.length){
+   /* wrong key: refuse it, so the player cannot move on until the right letter is typed */
+   S.errs++;S.streak=0;v=v.slice(0,ok);e.target.value=v;
+   const d=document.querySelector('.dash');d.classList.remove('err');void d.offsetWidth;d.classList.add('err');
+   flash=true;if(sfxOn)cbeep(180,.12);
+  }else{S.streak=(S.streak||0)+1;S.hits.push(performance.now())}
+  $('c0').classList.toggle('nitro',S.streak>=12);
   $('ac').textContent=Math.round((S.keys-S.errs)/S.keys*100)+'%';
  }
- if(v.length>S.text.length)e.target.value=v.slice(0,S.text.length);
- render(e.target.value);
- if(e.target.value===S.text)finish();
+ if(v.length>S.text.length){v=v.slice(0,S.text.length);e.target.value=v}
+ render(v);
+ if(flash){const c=document.querySelector('#txt .cur');if(c){c.classList.add('wrong');setTimeout(()=>c.classList.remove('wrong'),260)}}
+ if(v===S.text)finish();
 });
 function finish(){
  S.run=false;cancelAnimationFrame(raf);last=0;musicStop();
@@ -588,7 +598,7 @@ $('sv').onclick=()=>{
  if(!n){$('nameerr').classList.remove('hide');$('name').classList.add('bad');$('name').focus();return}
  saved=true;
  const d=store('get');d.push({n,l:S.res.l,w:S.res.w,s:lastScore});
- d.sort((a,b)=>b.s-a.s);store('set',d.slice(0,10));
+ d.sort((a,b)=>b.s-a.s);store('set',d.slice(0,3));
  $('save').classList.add('hide');board($('lb2'));
 };
 $('go').onclick=()=>start();$('again').onclick=()=>{if(S&&S.mp&&MP)mpStartRound();else start()};
